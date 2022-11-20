@@ -73,3 +73,113 @@ impl<'i> Cursor<'i> {
         chars.next()
     }
 }
+
+impl<'i> Cursor<'i> {
+    pub fn consume(&mut self) -> Option<char> {
+        self.chars.next()
+    }
+
+    pub fn consume_with(&mut self, mut func: impl FnMut(&mut Cursor<'i>)) -> &mut Self {
+        func(self);
+        self
+    }
+
+    pub fn consume_while(&mut self, mut predicate: impl FnMut(char) -> bool) -> &mut Self {
+        self.consume_with(|cursor| {
+            for ch in cursor.chars() {
+                if predicate(ch) {
+                    cursor.consume();
+                } else {
+                    break;
+                }
+            }
+        })
+    }
+
+    pub fn consume_until(&mut self, mut predicate: impl FnMut(char) -> bool) -> &mut Self {
+        self.consume_with(|cursor| {
+            for ch in cursor.chars() {
+                cursor.consume();
+
+                if predicate(ch) {
+                    break;
+                }
+            }
+        })
+    }
+}
+
+impl<'i> Cursor<'i> {
+    pub fn consume_line(&mut self) -> &mut Self {
+        self.consume_until(|ch| ch == '\n')
+    }
+
+    pub fn consume_lines_while(&mut self, mut predicate: impl FnMut(&'i str) -> bool) -> &mut Self {
+        self.consume_with(|cursor| {
+            for next_line in cursor.chars().as_str().lines() {
+                if predicate(next_line) {
+                    cursor.consume_line();
+                } else {
+                    break;
+                }
+            }
+        })
+    }
+
+    pub fn consume_lines_until(&mut self, mut predicate: impl FnMut(&'i str) -> bool) -> &mut Self {
+        self.consume_with(|cursor| {
+            for next_line in cursor.chars().as_str().lines() {
+                cursor.consume_line();
+
+                if predicate(next_line) {
+                    break;
+                }
+            }
+        })
+    }
+}
+
+impl<'i> Cursor<'i> {
+    pub fn focus_with(&mut self, mut func: impl FnMut(&mut Cursor<'i>)) -> Self {
+        let start = self.position();
+        func(self);
+        let end = self.position();
+        Self::new(self.input, self.input[start..end].chars())
+    }
+
+    pub fn focus_char(&mut self) -> Self {
+        self.focus_with(|cursor| {
+            cursor.consume();
+        })
+    }
+
+    pub fn focus_line(&mut self) -> Self {
+        self.focus_with(|cursor| {
+            cursor.consume_line();
+        })
+    }
+
+    pub fn focus_while(&mut self, mut predicate: impl FnMut(char) -> bool) -> Self {
+        self.focus_with(|cursor| {
+            cursor.consume_while(&mut predicate);
+        })
+    }
+
+    pub fn focus_until(&mut self, mut predicate: impl FnMut(char) -> bool) -> Self {
+        self.focus_with(|cursor| {
+            cursor.consume_until(&mut predicate);
+        })
+    }
+
+    pub fn focus_lines_while(&mut self, mut predicate: impl FnMut(&'i str) -> bool) -> Self {
+        self.focus_with(|cursor| {
+            cursor.consume_lines_while(&mut predicate);
+        })
+    }
+
+    pub fn focus_lines_until(&mut self, mut predicate: impl FnMut(&'i str) -> bool) -> Self {
+        self.focus_with(|cursor| {
+            cursor.consume_lines_until(&mut predicate);
+        })
+    }
+}
