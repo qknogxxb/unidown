@@ -1,3 +1,4 @@
+use std::ops::{Deref, DerefMut};
 use std::str::Chars;
 
 #[derive(Debug, Clone)]
@@ -181,5 +182,35 @@ impl<'i> Cursor<'i> {
         self.focus_with(|cursor| {
             cursor.consume_lines_until(&mut predicate);
         })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Span<'i, Kind: 'i> {
+    pub kind: Kind,
+    pub cursor: Cursor<'i>,
+}
+
+impl<'i, Kind: 'i> Span<'i, Kind> {
+    pub fn new(kind: Kind, cursor: Cursor<'i>) -> Self {
+        Self { kind, cursor }
+    }
+
+    pub fn to_kind<OtherKind: 'i>(&self, other_kind: OtherKind) -> Span<'i, OtherKind> {
+        Span::new(other_kind, self.cursor.clone())
+    }
+}
+
+impl<'i, Kind: 'i> Deref for Span<'i, Kind> {
+    type Target = Cursor<'i>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.cursor
+    }
+}
+
+impl<'i, Kind: 'i> DerefMut for Span<'i, Kind> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.cursor
     }
 }
