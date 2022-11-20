@@ -214,3 +214,10 @@ impl<'i, Kind: 'i> DerefMut for Span<'i, Kind> {
         &mut self.cursor
     }
 }
+
+#[derive(Debug, Clone)]
+pub enum UniErrorKind {}
+
+pub type UniError<'i> = Span<'i, UniErrorKind>;
+
+pub type UniResult<'i, T> = Result<T, UniError<'i>>;
